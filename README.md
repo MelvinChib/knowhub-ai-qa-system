@@ -1,5 +1,12 @@
 # AI-powered intelligent Q&A system leveraging embeddings, RAG, and Spring AI backend
 
+[![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3+-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring AI](https://img.shields.io/badge/Spring%20AI-Latest-blue.svg)](https://spring.io/projects/spring-ai)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue.svg)](https://www.postgresql.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI/CD](https://github.com/MelvinChib/knowhub-ai-qa-system/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/MelvinChib/knowhub-ai-qa-system/actions)
+
 A sophisticated, production-ready intelligent question-answering system that combines the power of modern AI technologies with enterprise-grade backend architecture. Built with Spring Boot 3.3+ and Spring AI, this system enables users to upload documents and receive contextually accurate answers through advanced Retrieval-Augmented Generation (RAG) techniques.
 
 ## 🎯 Project Overview
