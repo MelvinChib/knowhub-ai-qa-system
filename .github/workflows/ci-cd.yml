@@ -51,7 +51,7 @@ jobs:
         restore-keys: ${{ runner.os }}-m2
     
     - name: Run tests
-      run: mvn clean test
+      run: chmod +x mvnw && ./mvnw clean test
       continue-on-error: true
       env:
         SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb
@@ -115,7 +115,7 @@ jobs:
         distribution: 'temurin'
     
     - name: Build with Maven
-      run: mvn clean package -DskipTests
+      run: chmod +x mvnw && ./mvnw clean package -DskipTests
     
     - name: Build Docker image
       run: docker build -t knowhub-backend:${{ github.sha }} .
