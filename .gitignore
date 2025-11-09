@@ -1,0 +1,33 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+*.pdf
+*.docx
+*.txt
+
+# Environment
+.env
+.env.local
+
+# Spring Boot
+HELP.md
+.gradle
+build/
