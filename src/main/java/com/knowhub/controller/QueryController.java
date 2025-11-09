@@ -1,9 +1,11 @@
 package com.knowhub.controller;
 
+import com.knowhub.constant.AppConstants;
+import com.knowhub.dto.ApiResponse;
+import com.knowhub.dto.QueryHistoryResponse;
 import com.knowhub.dto.QueryRequest;
 import com.knowhub.dto.QueryResponse;
-import com.knowhub.model.QueryHistory;
-import com.knowhub.service.QueryService;
+import com.knowhub.service.IQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,20 +29,19 @@ import java.util.List;
  * @since 2024
  */
 @RestController
-@RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5173")
+@RequestMapping(AppConstants.Api.QUERY)
 @Tag(name = "Query Management", description = "APIs for querying documents and managing chat history")
 public class QueryController {
     
     /** Service for query processing operations. */
-    private final QueryService queryService;
+    private final IQueryService queryService;
 
     /**
      * Constructor for QueryController.
      * 
      * @param queryService the query service
      */
-    public QueryController(QueryService queryService) {
+    public QueryController(IQueryService queryService) {
         this.queryService = queryService;
     }
 
@@ -58,11 +59,11 @@ public class QueryController {
      * @param request the query request containing the user's question
      * @return ResponseEntity containing the AI response and context sources
      */
-    @PostMapping("/query")
+    @PostMapping
     @Operation(summary = "Ask a question", description = "Ask a question about uploaded documents and get AI-generated answer")
-    public ResponseEntity<QueryResponse> askQuestion(@Valid @RequestBody QueryRequest request) {
+    public ResponseEntity<ApiResponse<QueryResponse>> askQuestion(@Valid @RequestBody QueryRequest request) {
         QueryResponse response = queryService.processQuery(request.question());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -75,8 +76,8 @@ public class QueryController {
      */
     @GetMapping("/history")
     @Operation(summary = "Get query history", description = "Retrieve recent questions and answers")
-    public ResponseEntity<List<QueryHistory>> getQueryHistory() {
-        List<QueryHistory> history = queryService.getQueryHistory();
-        return ResponseEntity.ok(history);
+    public ResponseEntity<ApiResponse<List<QueryHistoryResponse>>> getQueryHistory() {
+        List<QueryHistoryResponse> history = queryService.getQueryHistory();
+        return ResponseEntity.ok(ApiResponse.success(history));
     }
 }

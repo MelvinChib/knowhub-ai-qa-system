@@ -1,7 +1,9 @@
 package com.knowhub.controller;
 
+import com.knowhub.constant.AppConstants;
+import com.knowhub.dto.ApiResponse;
 import com.knowhub.dto.DocumentResponse;
-import com.knowhub.service.DocumentService;
+import com.knowhub.service.IDocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -25,20 +27,19 @@ import java.util.List;
  * @since 2024
  */
 @RestController
-@RequestMapping("/api/documents")
-@CrossOrigin(origins = "http://localhost:5173")
+@RequestMapping(AppConstants.Api.DOCUMENTS)
 @Tag(name = "Document Management", description = "APIs for document upload and management")
 public class DocumentController {
     
     /** Service for document operations. */
-    private final DocumentService documentService;
+    private final IDocumentService documentService;
 
     /**
      * Constructor for DocumentController.
      * 
      * @param documentService the document service
      */
-    public DocumentController(DocumentService documentService) {
+    public DocumentController(IDocumentService documentService) {
         this.documentService = documentService;
     }
 
@@ -53,9 +54,9 @@ public class DocumentController {
      */
     @PostMapping("/upload")
     @Operation(summary = "Upload a document", description = "Upload a PDF, DOCX, or TXT document for processing")
-    public ResponseEntity<DocumentResponse> uploadDocument(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ApiResponse<DocumentResponse>> uploadDocument(@RequestParam("file") MultipartFile file) {
         DocumentResponse response = documentService.uploadDocument(file);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("Document uploaded successfully", response));
     }
 
     /**
@@ -65,9 +66,9 @@ public class DocumentController {
      */
     @GetMapping
     @Operation(summary = "Get all documents", description = "Retrieve list of all uploaded documents")
-    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
+    public ResponseEntity<ApiResponse<List<DocumentResponse>>> getAllDocuments() {
         List<DocumentResponse> documents = documentService.getAllDocuments();
-        return ResponseEntity.ok(documents);
+        return ResponseEntity.ok(ApiResponse.success(documents));
     }
 
     /**
@@ -80,8 +81,8 @@ public class DocumentController {
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a document", description = "Delete a document and its associated embeddings")
-    public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteDocument(@PathVariable Long id) {
         documentService.deleteDocument(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success("Document deleted successfully", null));
     }
 }

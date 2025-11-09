@@ -1,7 +1,6 @@
 package com.knowhub.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -19,8 +18,10 @@ import java.util.List;
  * @since 2024
  */
 @Entity
-@Table(name = "query_history")
-public class QueryHistory {
+@Table(name = "query_history", indexes = {
+    @Index(name = "idx_created_at", columnList = "createdAt")
+})
+public class QueryHistory extends BaseEntity {
     /** Unique identifier for the query history record. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,17 +40,6 @@ public class QueryHistory {
     @CollectionTable(name = "query_context_docs", joinColumns = @JoinColumn(name = "query_id"))
     @Column(name = "document_name")
     private List<String> contextDocuments;
-
-    /** Timestamp when the query was processed. */
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    /**
-     * Default constructor that initializes the creation timestamp.
-     */
-    public QueryHistory() {
-        this.createdAt = LocalDateTime.now();
-    }
 
     // Getters and Setters
     
@@ -76,10 +66,4 @@ public class QueryHistory {
     
     /** @param contextDocuments the list of context document names to set */
     public void setContextDocuments(List<String> contextDocuments) { this.contextDocuments = contextDocuments; }
-
-    /** @return the creation timestamp */
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    
-    /** @param createdAt the creation timestamp to set */
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -1,6 +1,9 @@
 package com.knowhub.service;
 
+import com.knowhub.constant.AppConstants;
+import com.knowhub.dto.QueryHistoryResponse;
 import com.knowhub.dto.QueryResponse;
+import com.knowhub.mapper.QueryHistoryMapper;
 import com.knowhub.model.EmbeddingVector;
 import com.knowhub.model.QueryHistory;
 import com.knowhub.repository.QueryHistoryRepository;
@@ -35,30 +38,21 @@ import java.util.stream.Collectors;
  * @since 2024
  */
 @Service
-public class QueryService {
+public class QueryService implements IQueryService {
     
     /** Spring AI chat model for generating responses. */
     private final ChatModel chatModel;
     
     /** Service for embedding operations and similarity search. */
-    private final EmbeddingService embeddingService;
+    private final IEmbeddingService embeddingService;
     
     /** Repository for storing query history. */
     private final QueryHistoryRepository queryHistoryRepository;
     
-    /** System prompt template for contextual AI responses. */
-    private static final String SYSTEM_PROMPT = """
-        You are a helpful AI assistant that answers questions based on the provided context.
-        Use the following context to answer the user's question accurately and concisely.
-        If the context doesn't contain enough information to answer the question, say so clearly.
-        
-        Context:
-        {context}
-        
-        Question: {question}
-        
-        Answer:
-        """;
+    /** Mapper for entity-to-DTO conversion. */
+    private final QueryHistoryMapper queryHistoryMapper;
+    
+
 
     /**
      * Constructor for QueryService.
@@ -68,11 +62,13 @@ public class QueryService {
      * @param queryHistoryRepository repository for query history
      */
     public QueryService(ChatModel chatModel, 
-                       EmbeddingService embeddingService,
-                       QueryHistoryRepository queryHistoryRepository) {
+                       IEmbeddingService embeddingService,
+                       QueryHistoryRepository queryHistoryRepository,
+                       QueryHistoryMapper queryHistoryMapper) {
         this.chatModel = chatModel;
         this.embeddingService = embeddingService;
         this.queryHistoryRepository = queryHistoryRepository;
+        this.queryHistoryMapper = queryHistoryMapper;
     }
 
     /**
@@ -89,15 +85,15 @@ public class QueryService {
      * @param question the user's question
      * @return QueryResponse containing the AI answer and context sources
      */
+    @Override
     @Timed(value = "query.processing", description = "Time taken to process queries")
     public QueryResponse processQuery(String question) {
         // Find similar document chunks
         List<EmbeddingVector> similarChunks = embeddingService.findSimilarChunks(question, 5);
         
         if (similarChunks.isEmpty()) {
-            String noContextAnswer = "I don't have any relevant documents to answer your question. Please upload some documents first.";
-            saveQueryHistory(question, noContextAnswer, List.of());
-            return new QueryResponse(noContextAnswer, List.of());
+            saveQueryHistory(question, AppConstants.ErrorMessages.NO_DOCUMENTS, List.of());
+            return new QueryResponse(AppConstants.ErrorMessages.NO_DOCUMENTS, List.of());
         }
         
         // Build context from similar chunks
@@ -112,7 +108,7 @@ public class QueryService {
                 .toList();
         
         // Create prompt
-        PromptTemplate promptTemplate = new PromptTemplate(SYSTEM_PROMPT);
+        PromptTemplate promptTemplate = new PromptTemplate(AppConstants.Prompts.SYSTEM_PROMPT);
         Prompt prompt = promptTemplate.create(Map.of(
             "context", context,
             "question", question
@@ -127,13 +123,12 @@ public class QueryService {
         return new QueryResponse(answer, contextDocuments);
     }
     
-    /**
-     * Retrieves the recent query history.
-     * 
-     * @return list of the 20 most recent query history records
-     */
-    public List<QueryHistory> getQueryHistory() {
-        return queryHistoryRepository.findTop20ByOrderByCreatedAtDesc();
+    @Override
+    public List<QueryHistoryResponse> getQueryHistory() {
+        return queryHistoryRepository.findTop20ByOrderByCreatedAtDesc()
+                .stream()
+                .map(queryHistoryMapper::toResponse)
+                .toList();
     }
     
     /**

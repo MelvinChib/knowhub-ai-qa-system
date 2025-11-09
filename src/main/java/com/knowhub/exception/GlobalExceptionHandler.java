@@ -1,5 +1,6 @@
 package com.knowhub.exception;
 
+import com.knowhub.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -34,13 +35,18 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity with error details and BAD_REQUEST status
      */
     @ExceptionHandler(DocumentProcessingException.class)
-    public ResponseEntity<ErrorResponse> handleDocumentProcessingException(DocumentProcessingException ex) {
-        ErrorResponse error = new ErrorResponse(
-            HttpStatus.BAD_REQUEST.value(),
-            ex.getMessage(),
-            LocalDateTime.now()
-        );
-        return ResponseEntity.badRequest().body(error);
+    public ResponseEntity<ApiResponse<Void>> handleDocumentProcessingException(DocumentProcessingException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+    }
+    
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ex.getMessage()));
+    }
+    
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleFileStorageException(FileStorageException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(ex.getMessage()));
     }
 
     /**
@@ -50,13 +56,9 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity with error details and PAYLOAD_TOO_LARGE status
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
-        ErrorResponse error = new ErrorResponse(
-            HttpStatus.PAYLOAD_TOO_LARGE.value(),
-            "File size exceeds maximum allowed size",
-            LocalDateTime.now()
-        );
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(ApiResponse.error("File size exceeds maximum allowed size"));
     }
 
     /**
@@ -83,21 +85,8 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity with generic error message and INTERNAL_SERVER_ERROR status
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        ErrorResponse error = new ErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            "An unexpected error occurred",
-            LocalDateTime.now()
-        );
-        return ResponseEntity.internalServerError().body(error);
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        return ResponseEntity.internalServerError()
+                .body(ApiResponse.error("An unexpected error occurred"));
     }
-
-    /**
-     * Error response record for consistent error formatting.
-     * 
-     * @param status HTTP status code
-     * @param message error message
-     * @param timestamp when the error occurred
-     */
-    public record ErrorResponse(int status, String message, LocalDateTime timestamp) {}
 }

@@ -58,11 +58,11 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/api/documents/**").hasRole("USER")
-                .requestMatchers("/api/query", "/api/history").hasRole("USER")
+                .requestMatchers("/api/v1/documents/**").hasRole("USER")
+                .requestMatchers("/api/v1/query/**").hasRole("USER")
                 .anyRequest().authenticated()
             );
         

@@ -1,5 +1,7 @@
 package com.knowhub.controller;
 
+import com.knowhub.constant.AppConstants;
+import com.knowhub.dto.ApiResponse;
 import com.knowhub.dto.AuthRequest;
 import com.knowhub.dto.AuthResponse;
 import com.knowhub.model.User;
@@ -24,8 +26,7 @@ import org.springframework.web.bind.annotation.*;
  * @since 2024
  */
 @RestController
-@RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173")
+@RequestMapping(AppConstants.Api.AUTH)
 @Tag(name = "Authentication", description = "User authentication and registration")
 public class AuthController {
     
@@ -43,7 +44,7 @@ public class AuthController {
     
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
@@ -51,24 +52,26 @@ public class AuthController {
         User user = (User) authentication.getPrincipal();
         String token = jwtUtils.generateToken(user);
         
-        return ResponseEntity.ok(new AuthResponse(token, user.getUsername(), user.getRole().name()));
+        return ResponseEntity.ok(ApiResponse.success(
+            new AuthResponse(token, user.getUsername(), user.getRole().name())
+        ));
     }
     
     @PostMapping("/register")
     @Operation(summary = "User registration", description = "Register a new user")
-    public ResponseEntity<String> register(@Valid @RequestBody AuthRequest request) {
+    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody AuthRequest request) {
         if (userRepository.existsByUsername(request.username())) {
-            return ResponseEntity.badRequest().body("Username already exists");
+            return ResponseEntity.badRequest().body(ApiResponse.error("Username already exists"));
         }
         
         User user = new User();
         user.setUsername(request.username());
-        user.setEmail(request.username() + "@example.com"); // Simplified for demo
+        user.setEmail(request.username() + "@example.com");
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(User.Role.USER);
         
         userRepository.save(user);
         
-        return ResponseEntity.ok("User registered successfully");
+        return ResponseEntity.ok(ApiResponse.success("User registered successfully", null));
     }
 }

@@ -32,7 +32,7 @@ import java.util.List;
  * @since 2024
  */
 @Service
-public class EmbeddingService {
+public class EmbeddingService implements IEmbeddingService {
     
     /** Spring AI embedding model for generating vector embeddings. */
     private final EmbeddingModel embeddingModel;
@@ -68,6 +68,7 @@ public class EmbeddingService {
      * 
      * @param document the document to generate embeddings for
      */
+    @Override
     @Async
     public void generateEmbeddings(Document document) {
         String text = document.getExtractedText();
@@ -106,6 +107,7 @@ public class EmbeddingService {
      * @param limit maximum number of similar chunks to return
      * @return list of embedding vectors ordered by similarity
      */
+    @Override
     public List<EmbeddingVector> findSimilarChunks(String query, int limit) {
         // Generate embedding for query
         var embeddingResponse = embeddingModel.embedForResponse(List.of(query));

@@ -1,10 +1,15 @@
 package com.knowhub.service;
 
+import com.knowhub.constant.AppConstants;
 import com.knowhub.dto.DocumentResponse;
 import com.knowhub.exception.DocumentProcessingException;
+import com.knowhub.exception.FileStorageException;
+import com.knowhub.exception.ResourceNotFoundException;
+import com.knowhub.mapper.DocumentMapper;
 import com.knowhub.model.Document;
 import com.knowhub.repository.DocumentRepository;
 import com.knowhub.repository.EmbeddingRepository;
+import com.knowhub.validation.FileValidator;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -47,7 +52,7 @@ import java.util.UUID;
  * @since 2024
  */
 @Service
-public class DocumentService {
+public class DocumentService implements IDocumentService {
     
     /** Repository for document data access. */
     private final DocumentRepository documentRepository;
@@ -56,7 +61,13 @@ public class DocumentService {
     private final EmbeddingRepository embeddingRepository;
     
     /** Service for generating document embeddings. */
-    private final EmbeddingService embeddingService;
+    private final IEmbeddingService embeddingService;
+    
+    /** Validator for file validation. */
+    private final FileValidator fileValidator;
+    
+    /** Mapper for entity-to-DTO conversion. */
+    private final DocumentMapper documentMapper;
     
     /** Directory path for storing uploaded files. */
     @Value("${knowhub.upload.directory}")
@@ -71,10 +82,14 @@ public class DocumentService {
      */
     public DocumentService(DocumentRepository documentRepository, 
                           EmbeddingRepository embeddingRepository,
-                          EmbeddingService embeddingService) {
+                          IEmbeddingService embeddingService,
+                          FileValidator fileValidator,
+                          DocumentMapper documentMapper) {
         this.documentRepository = documentRepository;
         this.embeddingRepository = embeddingRepository;
         this.embeddingService = embeddingService;
+        this.fileValidator = fileValidator;
+        this.documentMapper = documentMapper;
     }
 
     /**
@@ -87,11 +102,12 @@ public class DocumentService {
      * @return DocumentResponse containing document metadata
      * @throws DocumentProcessingException if file processing fails
      */
+    @Override
     @Transactional
     @CacheEvict(value = "documents", allEntries = true)
     @Timed(value = "document.upload", description = "Time taken to upload and process documents")
     public DocumentResponse uploadDocument(MultipartFile file) {
-        validateFile(file);
+        fileValidator.validate(file);
         
         try {
             // Create upload directory if it doesn't exist
@@ -122,10 +138,10 @@ public class DocumentService {
             // Generate and store embeddings asynchronously
             embeddingService.generateEmbeddings(document);
             
-            return mapToResponse(document);
+            return documentMapper.toResponse(document);
             
         } catch (IOException e) {
-            throw new DocumentProcessingException("Failed to upload document: " + e.getMessage());
+            throw new FileStorageException(String.format(AppConstants.ErrorMessages.UPLOAD_FAILED, e.getMessage()), e);
         }
     }
 
@@ -134,12 +150,13 @@ public class DocumentService {
      * 
      * @return list of document responses ordered by upload date (newest first)
      */
+    @Override
     @Cacheable(value = "documents")
     @Timed(value = "document.retrieval", description = "Time taken to retrieve documents")
     public List<DocumentResponse> getAllDocuments() {
-        return documentRepository.findAllByOrderByUploadedAtDesc()
+        return documentRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(this::mapToResponse)
+                .map(documentMapper::toResponse)
                 .toList();
     }
 
@@ -153,12 +170,13 @@ public class DocumentService {
      * @param id the ID of the document to delete
      * @throws DocumentProcessingException if document is not found
      */
+    @Override
     @Transactional
     @CacheEvict(value = "documents", allEntries = true)
     @Timed(value = "document.deletion", description = "Time taken to delete documents")
     public void deleteDocument(Long id) {
         Document document = documentRepository.findById(id)
-                .orElseThrow(() -> new DocumentProcessingException("Document not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(AppConstants.ErrorMessages.DOCUMENT_NOT_FOUND));
         
         // Delete embeddings
         embeddingRepository.deleteByDocumentId(id);
@@ -175,25 +193,6 @@ public class DocumentService {
     }
 
     /**
-     * Validates the uploaded file for supported formats and content.
-     * 
-     * @param file the file to validate
-     * @throws DocumentProcessingException if file is invalid or unsupported
-     */
-    private void validateFile(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new DocumentProcessingException("File is empty");
-        }
-        
-        String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("application/pdf") && 
-            !contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") &&
-            !contentType.equals("text/plain"))) {
-            throw new DocumentProcessingException("Unsupported file type. Only PDF, DOCX, and TXT files are allowed.");
-        }
-    }
-
-    /**
      * Extracts text content from the uploaded file based on its type.
      * 
      * @param file the uploaded file
@@ -205,10 +204,10 @@ public class DocumentService {
         String contentType = file.getContentType();
         
         return switch (contentType) {
-            case "application/pdf" -> extractPdfText(filePath);
-            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> extractDocxText(file);
-            case "text/plain" -> new String(file.getBytes());
-            default -> throw new DocumentProcessingException("Unsupported file type");
+            case AppConstants.FileType.PDF -> extractPdfText(filePath);
+            case AppConstants.FileType.DOCX -> extractDocxText(file);
+            case AppConstants.FileType.TXT -> new String(file.getBytes());
+            default -> throw new DocumentProcessingException(AppConstants.ErrorMessages.UNSUPPORTED_FILE_TYPE);
         };
     }
 
@@ -240,20 +239,5 @@ public class DocumentService {
         }
     }
 
-    /**
-     * Maps a Document entity to a DocumentResponse DTO.
-     * 
-     * @param document the document entity
-     * @return document response DTO
-     */
-    private DocumentResponse mapToResponse(Document document) {
-        return new DocumentResponse(
-            document.getId(),
-            document.getFilename(),
-            document.getOriginalFilename(),
-            document.getContentType(),
-            document.getFileSize(),
-            document.getUploadedAt()
-        );
-    }
+
 }

@@ -1,7 +1,6 @@
 package com.knowhub.model;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 /**
  * Entity representing a document uploaded to the KnowHub system.
@@ -18,8 +17,10 @@ import java.time.LocalDateTime;
  * @since 2024
  */
 @Entity
-@Table(name = "documents")
-public class Document {
+@Table(name = "documents", indexes = {
+    @Index(name = "idx_uploaded_at", columnList = "createdAt")
+})
+public class Document extends BaseEntity {
     /** Unique identifier for the document. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,17 +49,6 @@ public class Document {
     /** Extracted text content from the document. */
     @Column(columnDefinition = "TEXT")
     private String extractedText;
-
-    /** Timestamp when the document was uploaded. */
-    @Column(nullable = false)
-    private LocalDateTime uploadedAt;
-
-    /**
-     * Default constructor that initializes the upload timestamp.
-     */
-    public Document() {
-        this.uploadedAt = LocalDateTime.now();
-    }
 
     // Getters and Setters
     
@@ -103,10 +93,6 @@ public class Document {
     
     /** @param extractedText the extracted text to set */
     public void setExtractedText(String extractedText) { this.extractedText = extractedText; }
-
-    /** @return the upload timestamp */
-    public LocalDateTime getUploadedAt() { return uploadedAt; }
     
-    /** @param uploadedAt the upload timestamp to set */
-    public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+    public java.time.LocalDateTime getUploadedAt() { return getCreatedAt(); }
 }

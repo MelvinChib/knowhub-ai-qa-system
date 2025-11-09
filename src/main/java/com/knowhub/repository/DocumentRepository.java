@@ -25,5 +25,5 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
      * 
      * @return list of documents sorted by most recent upload first
      */
-    List<Document> findAllByOrderByUploadedAtDesc();
+    List<Document> findAllByOrderByCreatedAtDesc();
 }
